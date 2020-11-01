@@ -90,7 +90,7 @@ To connect a client currently:
 
 3. Use the OpenVPN GUI and user/pass authentication 
 
-### Automatically connecting via Linux client/systemd service
+### Automatically connecting via Linux client/systemd service (tested on Fedora 33)
 
 3. Rename to `client.conf` and place in `/etc/openvpn/client/`
 4. Create a `/etc/openvpn/client/pass_file` with the following contents:
