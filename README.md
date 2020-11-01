@@ -1,8 +1,7 @@
 ## ansible-openvpn-server
-#### Configure a CentOS/RHEL system as an OpenVPN server
-##### Uses EPEL!
-##### SELinux Enforcing!
-##### Tested with CentOS 8
+### Configure a CentOS/RHEL system as an OpenVPN server
+#### Uses EPEL and SELinux in Enforcing mode!
+#### Tested with CentOS 8
 
 This Ansible content will take a bare system such as a simple VPS and configure it as an OpenVPN Server.
 
