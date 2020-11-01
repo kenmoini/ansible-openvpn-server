@@ -75,3 +75,31 @@ As a checklist for execution:
 Then run:
 
 `ansible-playbook -i inventory --extra-vars "@extra_vars.yaml" configure.yaml`
+
+## Connecting Clients
+
+With the current configuration, clients are authenticated as the Linux users on the remote system via PAM.
+Switching to client certificates wouldn't be difficult, the PKI is already in place.
+
+To connect a client currently:
+
+1. Navigate to the HTTP{S} site that is generated at `http{s}://vpn-ca.example.com`
+2. Download the `Base OpenVPN Client Configuration (Requires Auth/Certs)`
+
+### GUI Based
+
+3. Use the OpenVPN GUI and user/pass authentication 
+
+### Automatically connecting via Linux client/systemd service
+
+3. Rename to `client.conf` and place in `/etc/openvpn/client/`
+4. Create a `/etc/openvpn/client/pass_file` with the following contents:
+
+```
+username_here
+password_here
+```
+
+5. Change ownership of both files to OpenVPN's user: `chown openvpn:openvpn /etc/openvpn/client/*`
+6. Start the client service: `systemctl enable --now openvpn-client@client`
+7. Test your connection by checking the service `systemctl status openvpn-client@client` and by checking your externally recognized IP `curl ipinfo.io/ip`
