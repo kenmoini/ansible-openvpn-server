@@ -1,6 +1,6 @@
 ---
-system_hostname: ca-vpn
-system_domain: kemo.network
+system_hostname: vpn
+system_domain: example.com
 
 update_system_packages: true
 reboot_after_kernel_update: true
@@ -53,8 +53,8 @@ pki_certificate_authority_root_path: "/etc/ssl/certs/{{ system_hostname }}"
 pki_certificate_authority_root_ca_expiration: "+10years+1day"
 pki_certificate_authority_root_ca_slug: "{{ system_hostname }}-ca.{{ system_domain }}"
 
-pki_certificate_authority_root_ca_organization_name: Kemo Labs
-pki_certificate_authority_root_ca_common_name: Kemo Labs Root Certificate Authority
+pki_certificate_authority_root_ca_organization_name: Example Labs
+pki_certificate_authority_root_ca_common_name: Example Labs Root Certificate Authority
 
 pki_ca_name_constraints: false
 
@@ -62,8 +62,8 @@ openvpn_certificate_root_path: "{{ pki_certificate_authority_root_path }}/interm
 openvpn_server_ca_expiration: "+10years+1day"
 openvpn_server_ca_slug: "{{ system_hostname }}-ca.{{ system_domain }}"
 
-openvpn_root_ca_organization_name: Kemo Labs
-openvpn_root_ca_common_name: Kemo Labs OpenVPN Intermediate Certificate Authority
+openvpn_root_ca_organization_name: Example Labs
+openvpn_root_ca_common_name: Example Labs OpenVPN Intermediate Certificate Authority
 
 openvpn_server_cert_expiration: "+3years+1day"
 openvpn_dh_param_size: 2048
