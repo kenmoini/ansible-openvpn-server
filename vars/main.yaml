@@ -1,0 +1,79 @@
+---
+system_hostname: ca-vpn
+system_domain: kemo.network
+
+update_system_packages: true
+reboot_after_kernel_update: true
+
+setup_cockpit: false
+setup_fail2ban: true
+configure_sshd: true
+
+########################################################################################
+### System - Configure and Secure SSHd
+
+sshd_port: 22
+sshd_listen_address_v4: 0.0.0.0
+sshd_listen_address_v6: "::"
+sshd_facist_logging: no
+sshd_logging_use_dns: no
+
+# sshd_log_level: QUIET, FATAL, ERROR, INFO, VERBOSE, DEBUG, DEBUG1, DEBUG2 or DEBUG3
+sshd_log_level: INFO
+# sshd_syslog_facility: DAEMON, USER, AUTH, AUTHPRIV, LOCAL0, LOCAL1, LOCAL2, LOCAL3, LOCAL4, LOCAL5, LOCAL6 or LOCAL7
+sshd_syslog_facility: AUTHPRIV
+
+sshd_login_grace_time: 15s
+sshd_max_auth_tries: 3
+sshd_max_sessions: 10
+
+sshd_permit_root_login: no
+sshd_pubkey_authentication: yes
+sshd_permit_empty_passwords: no
+sshd_password_auth: no
+
+sshd_allow_agent_forwarding: yes
+sshd_allow_tcp_forwarding: yes
+sshd_x11_forwarding: yes
+sshd_challenge_response_authentication: no
+
+sshd_kerberos_authentication: no
+sshd_kerberos_or_local_passwd: yes
+sshd_kerberos_ticket_cleanup: yes
+sshd_kerberos_get_afs_token: no
+sshd_kerberos_use_kuser_ok: yes
+
+#==================================================================================
+# DO NOT EDIT PAST THIS LINE!
+
+system_fqdn: "{{ system_hostname }}.{{ system_domain }}"
+
+setup_epel: true
+
+base_packages:
+  - git
+  - nano
+  - openvpn
+  - firewalld
+  - NetworkManager-openvpn
+
+cockpit_packages:
+  - cockpit-dashboard
+  - cockpit
+  - cockpit-composer
+  - cockpit-packagekit
+  - cockpit-shell
+  - cockpit-pcp
+  - pcp-system-tools
+
+fail2ban_packages:
+  - fail2ban
+  - fail2ban-selinux
+
+firewalld_ports:
+  - 1194/udp
+  - "{{ sshd_port }}/tcp"
+
+epel_repo_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+epel_repo_gpg_key_url: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+epel_repofile_path: "/etc/yum.repos.d/epel.repo"

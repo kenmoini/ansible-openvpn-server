@@ -1,0 +1,129 @@
+#       $OpenBSD: sshd_config,v 1.100 2016/08/15 12:32:04 naddy Exp $
+
+# This is the sshd server system-wide configuration file.  See
+# sshd_config(5) for more information.
+
+# This sshd was compiled with PATH=/usr/local/bin:/usr/bin
+
+# The strategy used for options in the default sshd_config shipped with
+# OpenSSH is to specify options with their default value where
+# possible, but leave them commented.  Uncommented options override the
+# default value.
+
+# If you want to change the port on a SELinux system, you have to tell
+# SELinux about this change.
+# semanage port -a -t ssh_port_t -p tcp #PORTNUMBER
+#
+Port {{ sshd_port }}
+#AddressFamily any
+ListenAddress {{ sshd_listen_address_v4 }}
+ListenAddress {{ sshd_listen_address_v6 }}
+
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Ciphers and keying
+#RekeyLimit default none
+
+# Logging
+SyslogFacility {{ sshd_syslog_facility }}
+LogLevel {{ sshd_log_level }}
+UseDNS {{ 'yes' if sshd_logging_use_dns|bool else 'no' }}
+
+# Authentication:
+
+StrictModes yes
+LoginGraceTime {{ sshd_login_grace_time }}
+PermitRootLogin {{ 'yes' if sshd_permit_root_login|bool else 'no' }}
+MaxAuthTries {{ sshd_max_auth_tries }}
+MaxSessions {{ sshd_max_sessions }}
+
+PubkeyAuthentication {{ 'yes' if sshd_pubkey_authentication|bool else 'no' }}
+
+# The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
+# but this is overridden so installations will only check .ssh/authorized_keys
+AuthorizedKeysFile      .ssh/authorized_keys
+
+PermitEmptyPasswords {{ 'yes' if sshd_permit_empty_passwords|bool else 'no' }}
+PasswordAuthentication {{ 'yes' if sshd_password_auth|bool else 'no' }}
+
+# For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
+#HostbasedAuthentication no
+# Change to yes if you don't trust ~/.ssh/known_hosts for
+# HostbasedAuthentication
+#IgnoreUserKnownHosts no
+# Don't read the user's ~/.rhosts and ~/.shosts files
+#IgnoreRhosts yes
+
+# Change to no to disable s/key passwords
+ChallengeResponseAuthentication {{ 'yes' if sshd_challenge_response_authentication|bool else 'no' }}
+
+# Kerberos options
+KerberosAuthentication {{ 'yes' if sshd_kerberos_authentication|bool else 'no' }}
+KerberosOrLocalPasswd {{ 'yes' if sshd_kerberos_or_local_passwd|bool else 'no' }}
+KerberosTicketCleanup {{ 'yes' if sshd_kerberos_ticket_cleanup|bool else 'no' }}
+KerberosGetAFSToken {{ 'yes' if sshd_kerberos_get_afs_token|bool else 'no' }}
+KerberosUseKuserok {{ 'yes' if sshd_kerberos_use_kuser_ok|bool else 'no' }}
+
+# GSSAPI options
+GSSAPIAuthentication yes
+GSSAPICleanupCredentials no
+#GSSAPIStrictAcceptorCheck yes
+#GSSAPIKeyExchange no
+#GSSAPIEnablek5users no
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of "PermitRootLogin without-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+# WARNING: 'UsePAM no' is not supported in Red Hat Enterprise Linux and may cause several
+# problems.
+UsePAM yes
+
+AllowAgentForwarding {{ 'yes' if sshd_allow_agent_forwarding|bool else 'no' }}
+AllowTcpForwarding {{ 'yes' if sshd_allow_tcp_forwarding|bool else 'no' }}
+X11Forwarding {{ 'yes' if sshd_x11_forwarding|bool else 'no' }}
+#GatewayPorts no
+#X11DisplayOffset 10
+#X11UseLocalhost yes
+#PermitTTY yes
+#PrintMotd yes
+#PrintLastLog yes
+#TCPKeepAlive yes
+#UseLogin no
+#UsePrivilegeSeparation sandbox
+#PermitUserEnvironment no
+#Compression delayed
+#ClientAliveInterval 0
+#ClientAliveCountMax 3
+#ShowPatchLevel no
+#PidFile /var/run/sshd.pid
+#MaxStartups 10:30:100
+#PermitTunnel no
+#ChrootDirectory none
+#VersionAddendum none
+
+# no default banner path
+#Banner none
+
+# Accept locale-related environment variables
+AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+AcceptEnv XMODIFIERS
+
+# override default of no subsystems
+Subsystem       sftp    internal-sftp
+
+# Example of overriding settings on a per-user basis
+#Match User anoncvs
+#       X11Forwarding no
+#       AllowTcpForwarding no
+#       PermitTTY no
+#       ForceCommand cvs server

@@ -1,0 +1,14 @@
+---
+- name: Enable Firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: Enable Ports on Firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    state: enabled
+    permanent: yes
+  with_items: "{{ firewalld_ports }}"
+  notify: restart firewalld

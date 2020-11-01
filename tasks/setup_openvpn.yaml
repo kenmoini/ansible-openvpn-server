@@ -1,0 +1,8 @@
+---
+- name: Install OpenVPN
+  yum:
+    name: ["openvpn", "NetworkManager-openvpn"]
+    state: latest
+  tags:
+    - installPackages
+    - installOpenVPN

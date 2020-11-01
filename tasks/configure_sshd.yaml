@@ -1,0 +1,13 @@
+---
+- name: Template over configuration file
+  template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    backup: yes
+  notify: restart sshd
+
+- name: Configure SSHD Port with SELinux if not on port 22
+  shell: "semanage port -a -t ssh_port_t -p tcp {{ sshd_port }}"
+  when: sshd_port != 22

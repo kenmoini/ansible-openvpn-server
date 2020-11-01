@@ -1,0 +1,21 @@
+---
+- name: Install fail2ban
+  yum:
+    name: "{{ fail2ban_packages }}"
+    state: latest
+  tags:
+    - installPackages
+    - installFail2ban
+
+- name: Template out fail2ban local jail config file
+  template:
+    src: fail2ban-jail.j2
+    dest: /etc/fail2ban/jail.local
+    backup: yes
+  notify: restart fail2ban
+
+- name: Start and enable fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes

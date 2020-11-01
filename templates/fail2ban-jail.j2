@@ -1,0 +1,16 @@
+[DEFAULT] 
+bantime  = 21600
+findtime  = 300
+maxretry = 3
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+backend = systemd
+bantime.increment = true
+bantime.factor = 1
+bantime.formula = ban.Time * (1<<(ban.Count if ban.Count<20 else 20)) * banFactor
+bantime.multipliers = 1 5 30 60 300 720 1440 2880
+port = 0:65535
+#ignoreip = 127.0.0.1/8 ::1
+
+[sshd] 
+enabled = true

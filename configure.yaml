@@ -1,0 +1,62 @@
+---
+- name: Configure a CentOS/RHEL system as an OpenVPN server
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Include Global variables
+      include_vars: vars/main.yaml
+
+    - name: Set system hostname
+      include_tasks: tasks/set_hostname.yaml
+
+    - name: System Updater
+      include_tasks: tasks/update_system.yaml
+      when: update_system_packages|bool
+
+    - name: Install EPEL
+      include_tasks: tasks/install_epel.yaml
+      when: setup_epel|bool
+
+    - name: Install base packages
+      include_tasks: tasks/install_base_packages.yaml
+
+    - name: Set up Firewalld
+      include_tasks: tasks/setup_firewalld.yaml
+
+    - name: Set up SSHd
+      include_tasks: tasks/configure_sshd.yaml
+      when: configure_sshd|bool
+
+    - name: Set up Cockpit
+      include_tasks: tasks/setup_cockpit.yaml
+      when: setup_cockpit|bool
+
+    - name: Configure fail2ban
+      include_tasks: tasks/setup_fail2ban.yaml
+      when: setup_fail2ban|bool
+
+    - name: Set up VPN - OpenVPN
+      include_tasks: tasks/setup_openvpn.yaml
+      tags:
+        - configureVPN
+        - configureOpenVPN
+
+  handlers:
+    - name: restart firewalld
+      service:
+        name: firewalld
+        state: restarted
+
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted
+
+    - name: restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted
+
+    - name: update-ca-trust
+      shell: /bin/update-ca-trust
