@@ -1,0 +1,136 @@
+#
+# OpenSSL configuration for the Root Certification Authority.
+#
+
+#
+# This definition doesn't work if HOME isn't defined.
+CA_HOME                 = .
+RANDFILE                = $ENV::CA_HOME/private/.rnd
+
+#
+# Default Certification Authority
+[ ca ]
+default_ca              = root_ca
+
+#
+# Root Certification Authority
+[ root_ca ]
+dir                     = $ENV::CA_HOME
+certs                   = $dir/certs
+serial                  = $dir/root-ca.serial
+database                = $dir/root-ca.index
+new_certs_dir           = $dir/newcerts
+certificate             = $dir/root-ca.cert.pem
+private_key             = $dir/private/root-ca.key.pem
+default_days            = 1826 # 5 years
+crl                     = $dir/root-ca.crl
+crl_dir                 = $dir/crl
+crlnumber               = $dir/root-ca.crlnum
+name_opt                = multiline, align
+cert_opt                = no_pubkey
+copy_extensions         = copy
+crl_extensions          = crl_ext
+default_crl_days        = 180
+default_md              = sha256
+preserve                = no
+email_in_dn             = no
+policy                  = policy
+unique_subject          = no
+
+#
+# Distinguished Name Policy for CAs
+[ policy ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = supplied
+organizationalUnitName  = optional
+commonName              = supplied
+
+#
+# Root CA Request Options
+[ req ]
+default_bits            = 4096
+default_keyfile         = private/root-ca.key.pem
+encrypt_key             = yes
+default_md              = sha256
+string_mask             = utf8only
+utf8                    = yes
+prompt                  = no
+req_extensions          = root-ca_req_ext
+distinguished_name      = distinguished_name
+subjectAltName          = @subject_alt_name
+
+#
+# Root CA Request Extensions
+[ root-ca_req_ext ]
+subjectKeyIdentifier    = hash
+subjectAltName          = @subject_alt_name
+
+#
+# Distinguished Name (DN)
+[ distinguished_name ]
+organizationName        = {{ pki_certificate_authority_root_ca_organization_name }}
+commonName              = {{ pki_certificate_authority_root_ca_common_name }}
+
+#
+# Root CA Certificate Extensions
+[ root-ca_ext ]
+basicConstraints        = critical, CA:true
+keyUsage                = critical, keyCertSign, cRLSign
+{% if pki_ca_name_constraints|bool %}
+nameConstraints         = critical, @name_constraints
+{% endif %}
+subjectKeyIdentifier    = hash
+subjectAltName          = @subject_alt_name
+authorityKeyIdentifier  = keyid:always
+issuerAltName           = issuer:copy
+authorityInfoAccess     = @auth_info_access
+crlDistributionPoints   = crl_dist
+
+#
+# Intermediate CA Certificate Extensions
+[ intermed-ca_ext ]
+basicConstraints        = critical, CA:true, pathlen:0
+keyUsage                = critical, keyCertSign, cRLSign
+subjectKeyIdentifier    = hash
+subjectAltName          = @subject_alt_name
+authorityKeyIdentifier  = keyid:always
+issuerAltName           = issuer:copy
+authorityInfoAccess     = @auth_info_access
+crlDistributionPoints   = crl_dist
+
+#
+# CRL Certificate Extensions
+[ crl_ext ]
+authorityKeyIdentifier  = keyid:always
+issuerAltName           = issuer:copy
+
+#
+# Certificate Authorities Alternative Names
+[ subject_alt_name ]
+URI                     = http{{ 's' if deploy_ca_http_server_secure|bool else '' }}://{{ pki_certificate_authority_root_ca_slug }}:{{ ca_https_server_port if deploy_ca_http_server_secure|bool else ca_http_server_port }}/
+email                   = certmaster@{{ pki_certificate_authority_root_ca_slug }}
+
+{% if pki_ca_name_constraints|bool %}
+#
+# Name Constraints
+[ name_constraints ]
+permitted;DNS.1         = {{ system_domain }}
+permitted;DNS.2         = {{ pki_certificate_authority_root_ca_slug }}
+permitted;DNS.3         = lab
+permitted;DNS.4         = onion
+permitted;email.1       = {{ system_domain }}
+permitted;email.2       = {{ pki_certificate_authority_root_ca_slug }}
+{% endif %}
+#
+# Certificate download addresses for the root CA
+[ auth_info_access ]
+caIssuers;URI           = http{{ 's' if deploy_ca_http_server_secure|bool else '' }}://{{ ca_http_server_fqdns[0] }}:{{ ca_https_server_port if deploy_ca_http_server_secure|bool else ca_http_server_port }}/certs/{{ pki_certificate_authority_root_ca_slug }}_Root_Certification_Authority.cert.pem
+
+#
+# CRL Download address for the root CA
+[ crl_dist ]
+fullname                = URI:http{{ 's' if deploy_ca_http_server_secure|bool else '' }}://{{ ca_http_server_fqdns[0] }}:{{ ca_https_server_port if deploy_ca_http_server_secure|bool else ca_http_server_port }}/crl/{{ pki_certificate_authority_root_ca_slug }}_Root_Certification_Authority.crl
+
+# EOF

@@ -7,40 +7,69 @@
     - name: Include Global variables
       include_vars: vars/main.yaml
 
+    - name: Set SELinux
+      include_tasks: tasks/configure_selinux.yaml
+
     - name: Set system hostname
       include_tasks: tasks/set_hostname.yaml
 
     - name: System Updater
       include_tasks: tasks/update_system.yaml
       when: update_system_packages|bool
+      tags:
+        - updateSystem
+
+    - name: Configure automatic updates
+      include_tasks: tasks/configure_automatic_updates.yaml
+      when: configure_automatic_updates|bool
 
     - name: Install EPEL
       include_tasks: tasks/install_epel.yaml
       when: setup_epel|bool
+      tags:
+        - installPackages
+        - installEPEL
 
     - name: Install base packages
       include_tasks: tasks/install_base_packages.yaml
+      tags:
+        - installPackages
+        - installBasePackages
 
     - name: Set up Firewalld
       include_tasks: tasks/setup_firewalld.yaml
+      tags:
+        - configureFirewall
+        - configureFirewalld
 
     - name: Set up SSHd
       include_tasks: tasks/configure_sshd.yaml
       when: configure_sshd|bool
+      tags:
+        - configureSSHd
 
     - name: Set up Cockpit
       include_tasks: tasks/setup_cockpit.yaml
       when: setup_cockpit|bool
+      tags:
+        - configureCockpit
 
     - name: Configure fail2ban
       include_tasks: tasks/setup_fail2ban.yaml
       when: setup_fail2ban|bool
+      tags:
+        - configureFirewall
+        - configureFail2ban
 
     - name: Set up VPN - OpenVPN
       include_tasks: tasks/setup_openvpn.yaml
       tags:
         - configureVPN
         - configureOpenVPN
+
+    - name: Set up Cerbot for Nginx
+      include_tasks: tasks/configure_nginx_certbot.yaml
+      when: deploy_ca_https_server_letsencrypt|bool
 
   handlers:
     - name: restart firewalld
@@ -56,6 +85,16 @@
     - name: restart fail2ban
       service:
         name: fail2ban
+        state: restarted
+
+    - name: restart openvpn
+      systemd:
+        name: openvpn-server@server
+        state: restarted
+
+    - name: restart nginx
+      service:
+        name: nginx
         state: restarted
 
     - name: update-ca-trust

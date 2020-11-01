@@ -6,3 +6,510 @@
   tags:
     - installPackages
     - installOpenVPN
+
+#===================================================================================================
+## Root CA & General PKI
+
+- name: ROOT CA - Create PKI Directories
+  shell:
+    cmd: "mkdir -p {{ pki_certificate_authority_root_path }}/{certreqs,certs,crl,newcerts,private,intermed-ca} && chmod 700 {{ pki_certificate_authority_root_path }}/private"
+    warn: false
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Create initial crlnum index
+  shell:
+    cmd: "echo 00 > {{ pki_certificate_authority_root_path }}/root-ca.crlnum"
+    creates: "{{ pki_certificate_authority_root_path }}/root-ca.crlnum"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Create initial index
+  file:
+    path: "{{ pki_certificate_authority_root_path }}/root-ca.index"
+    state: touch
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Create initial serial index
+  shell:
+    cmd: "openssl rand -hex 16 > {{ pki_certificate_authority_root_path }}/root-ca.serial"
+    creates: "{{ pki_certificate_authority_root_path }}/root-ca.serial"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Template Root CA Configuration File
+  template:
+    src: openvpn-root-ca.cnf.j2
+    dest: "{{ pki_certificate_authority_root_path }}/root-ca.cnf"
+    backup: yes
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Generate Certificate Authority Private Key
+  shell:
+    #cmd: "cd {{ pki_certificate_authority_root_path }} && openssl req -new -batch -nodes -out private/root-ca.key.pem"
+    cmd: "cd {{ pki_certificate_authority_root_path }} && openssl genrsa -out private/root-ca.key.pem 4096"
+    creates: "{{ pki_certificate_authority_root_path }}/private/root-ca.key.pem"
+  environment:
+    OPENSSL_CONF: "{{ pki_certificate_authority_root_path }}/root-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Protect CA Root Key
+  file:
+    mode: "400"
+    path: "{{ pki_certificate_authority_root_path }}/private/root-ca.key.pem"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Generate Certificate Authority CSR
+  shell:
+    cmd: "cd {{ pki_certificate_authority_root_path }} && openssl req -new -batch -out certreqs/root-ca.req.pem -key private/root-ca.key.pem"
+    creates: "{{ pki_certificate_authority_root_path }}/certreqs/root-ca.req.pem"
+  environment:
+    OPENSSL_CONF: "{{ pki_certificate_authority_root_path }}/root-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Create CA Certificate
+  shell:
+    cmd: "cd {{ pki_certificate_authority_root_path }} && openssl ca -selfsign -batch -in certreqs/root-ca.req.pem -out root-ca.cert.pem -extensions root-ca_ext -startdate `date +%y%m%d000000Z -u -d -1day` -enddate `date +%y%m%d000000Z -u -d {{ pki_certificate_authority_root_ca_expiration }}`"
+    creates: "{{ pki_certificate_authority_root_path }}/root-ca.cert.pem"
+  environment:
+    OPENSSL_CONF: "{{ pki_certificate_authority_root_path }}/root-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Create CA CRL
+  shell:
+    cmd: "cd {{ pki_certificate_authority_root_path }} && openssl ca -gencrl -out crl/root-ca.crl"
+    creates: "{{ pki_certificate_authority_root_path }}/crl/root-ca.crl"
+  environment:
+    OPENSSL_CONF: "{{ pki_certificate_authority_root_path }}/root-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+- name: ROOT CA - Install Root CA as trusted CA
+  copy:
+    backup: yes
+    dest: "/etc/pki/ca-trust/source/anchors/{{ system_domain }}.crt"
+    src: "{{ pki_certificate_authority_root_path }}/root-ca.cert.pem"
+    remote_src: yes
+  notify: update-ca-trust
+  tags:
+    - setupPKI
+    - setupPKIRootCA
+
+#===================================================================================================
+## OpenVPN Server Intermediate CA
+
+- name: OpenVPN Intermediary CA - Create PKI Directories
+  shell:
+    cmd: "mkdir -p {{ openvpn_certificate_root_path }}/{certreqs,certs,crl,newcerts,private} && chmod 700 {{ openvpn_certificate_root_path }}/private"
+    warn: false
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Create initial crlnum index
+  shell:
+    cmd: "echo 00 > {{ openvpn_certificate_root_path }}/intermed-ca.crlnum"
+    creates: "{{ openvpn_certificate_root_path }}/intermed-ca.crlnum"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Create initial index
+  file:
+    path: "{{ openvpn_certificate_root_path }}/intermed-ca.index"
+    state: touch
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Create initial serial index
+  shell:
+    cmd: "openssl rand -hex 16 > {{ openvpn_certificate_root_path }}/intermed-ca.serial"
+    creates: "{{ openvpn_certificate_root_path }}/intermed-ca.serial"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Template Root CA Configuration File
+  template:
+    src: openvpn-intermed-ca.cnf.j2
+    dest: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+    backup: yes
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Generate Certificate Authority Private Key
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openssl genrsa -out private/intermed-ca.key.pem 4096"
+    creates: "{{ openvpn_certificate_root_path }}/private/intermed-ca.key.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Protect CA Root Key
+  file:
+    mode: "400"
+    path: "{{ openvpn_certificate_root_path }}/private/intermed-ca.key.pem"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Generate Certificate Authority CSR
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openssl req -new -batch -out certreqs/intermed-ca.req.pem -key private/intermed-ca.key.pem"
+    creates: "{{ openvpn_certificate_root_path }}/certreqs/intermed-ca.req.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Sign Intermediate CA Certificate with Root CA lol
+  shell:
+    cmd: "cd {{ pki_certificate_authority_root_path }} && openssl ca -batch -in {{ openvpn_certificate_root_path }}/certreqs/intermed-ca.req.pem -out intermed-ca.cert.pem -extensions intermed-ca_ext -startdate `date +%y%m%d000000Z -u -d -1day` -enddate `date +%y%m%d000000Z -u -d {{ openvpn_server_ca_expiration }}`"
+    creates: "{{ pki_certificate_authority_root_path }}/intermed-ca.cert.pem"
+  environment:
+    OPENSSL_CONF: "{{ pki_certificate_authority_root_path }}/root-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Copy Signed Certificate to Intermediate Directory
+  copy:
+    backup: yes
+    remote_src: yes
+    src: "{{ pki_certificate_authority_root_path }}/intermed-ca.cert.pem"
+    dest: "{{ openvpn_certificate_root_path }}/intermed-ca.cert.pem"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+
+- name: OpenVPN Intermediary CA - Create CA CRL
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openssl ca -gencrl -out crl/intermed-ca.crl"
+    creates: "{{ openvpn_certificate_root_path }}/crl/intermed-ca.crl"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNCA
+# Don't think we actually need to do this since we have the Root CA installed...
+#- name: OpenVPN Intermediary CA - Install Root CA as trusted CA
+#  copy:
+#    backup: yes
+#    dest: "/etc/pki/ca-trust/source/anchors/{{ openvpn_server_ca_slug }}.crt"
+#    src: "{{ openvpn_certificate_root_path }}/intermed-ca.cert.pem"
+#    remote_src: yes
+#  notify: update-ca-trust
+
+#===================================================================================================
+## OpenVPN Server Certificate Stuff
+
+- name: OpenVPN Server - Generate Certificate Private Key
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openssl genrsa -out private/openvpn-server.key.pem 4096"
+    creates: "{{ openvpn_certificate_root_path }}/private/openvpn-server.key.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNServer
+
+- name: OpenVPN Server - Protect Certificate Key
+  file:
+    mode: "400"
+    path: "{{ openvpn_certificate_root_path }}/private/openvpn-server.key.pem"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNServer
+
+- name: OpenVPN Server - Generate Server Certificate Key and CSR
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} &&  openssl req -new -batch -out certreqs/openvpn-server.req.pem -key private/openvpn-server.key.pem"
+    creates: "{{ openvpn_certificate_root_path }}/certreqs/openvpn-server.req.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNServer
+
+- name: OpenVPN Server - Sign Server Certificate With Intermediate CA
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openssl ca -batch -in certreqs/openvpn-server.req.pem -out certs/openvpn-server.cert.pem -extensions openvpn_server_ext"
+    creates: "{{ openvpn_certificate_root_path }}/certs/openvpn-server.cert.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNServer
+
+- name: OpenVPN Server - Generate TLS Auth Secret
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openvpn --genkey --secret private/openvpn-server-tls-auth.key.pem"
+    creates: "{{ openvpn_certificate_root_path }}/private/openvpn-server-tls-auth.key.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNServer
+
+- name: OpenVPN Server - Generate DH Params
+  shell:
+    cmd: "cd {{ openvpn_certificate_root_path }} && openssl dhparam -out private/openvpn-server-dhparams-{{ openvpn_dh_param_size }}.pem {{ openvpn_dh_param_size }}"
+    creates: "{{ openvpn_certificate_root_path }}/private/openvpn-server-dhparams-{{ openvpn_dh_param_size }}.pem"
+  environment:
+    OPENSSL_CONF: "{{ openvpn_certificate_root_path }}/intermed-ca.cnf"
+  tags:
+    - setupPKI
+    - setupPKIOpenVPNServer
+
+- name: Read Root CA Certificate
+  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ pki_certificate_authority_root_path }}/root-ca.cert.pem ) {{ pki_certificate_authority_root_path }}/root-ca.cert.pem"
+  register: root_ca_certificate_stdout
+
+- name: Read OpenVPN CA Certificate
+  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem ) {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem"
+  register: openvpn_ca_certificate_stdout
+
+- name: Read OpenVPN TLS Auth Key
+  shell: "cat {{ openvpn_certificate_root_path }}/private/openvpn-server-tls-auth.key.pem"
+  register: openvpn_tls_auth_certificate_stdout
+
+- name: Create bundled certificate chain - Root CA
+  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ pki_certificate_authority_root_path }}/root-ca.cert.pem ) {{ pki_certificate_authority_root_path }}/root-ca.cert.pem > {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
+
+- name: Create bundled certificate chain - Intermediate OpenVPN CA
+  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem ) {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem >> {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
+
+- name: Read CA Bundle File
+  shell: "cat {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
+  register: openvpn_ca_bundle_file_stdout
+
+- name: Template over OpenVPN Server Config
+  template:
+    src: openvpn-server.conf.j2
+    dest: /etc/openvpn/server/server.conf
+    backup: yes
+  notify: restart openvpn
+
+- name: Template over client config
+  template:
+    src: openvpn-client.ovpn.j2
+    dest: /etc/openvpn/base-client.ovpn
+    owner: "{{ openvpn_server_user }}"
+    group: "{{ openvpn_server_group }}"
+    backup: yes
+
+- name: Set Masquerading on Firewalld
+  shell: firewall-cmd --add-masquerade --permanent
+  notify: restart firewalld
+
+- name: Set IPv4 Forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Enable masquerading on edge device
+  shell: firewall-cmd --permanent --direct --passthrough ipv4 -t nat -A POSTROUTING -s 10.8.0.0/24 -o $(ip route | awk '/^default via/ {print $5}') -j MASQUERADE
+
+- name: Create log directory
+  file:
+    path: /var/log/openvpn
+    state: directory
+    owner: "{{ openvpn_server_user }}"
+    group: "{{ openvpn_server_group }}"
+
+- name: Create status file
+  file:
+    path: /var/log/openvpn/openvpn-status.log
+    owner: "{{ openvpn_server_user }}"
+    group: "{{ openvpn_server_group }}"
+    state: touch
+
+- name: Create logfile
+  file:
+    path: /var/log/openvpn/openvpn.log
+    owner: "{{ openvpn_server_user }}"
+    group: "{{ openvpn_server_group }}"
+    state: touch
+
+- name: Set SELinux context for log file
+  shell: semanage fcontext -a -t openvpn_var_log_t '/var/log/openvpn/openvpn.log'
+
+- name: Set SELinux context for status file
+  shell: semanage fcontext -a -t openvpn_status_t '/var/log/openvpn/openvpn-status.log'
+
+- name: Restore context for log files
+  shell: restorecon -R -v /var/log/openvpn
+
+- name: Set SELinux context for ipp.txt file
+  shell: semanage fcontext -a -t openvpn_etc_rw_t /etc/openvpn/server/ipp.txt
+
+- name: Restore context for ipp.txt file
+  shell: restorecon -R -v restorecon -R -v /etc/openvpn/server/
+
+- name: Copy over unixchkpwd policy files
+  copy:
+    src: files/my-unixchkpwd.*
+    dest: /etc/openvpn/server/
+
+- name: Run unixchkpwd policy
+  shell: cd /etc/openvpn/server && semodule -X 300 -i my-unixchkpwd.pp
+
+- name: Start OpenVPN Server
+  systemd:
+    name: openvpn-server@server
+    state: started
+    enabled: yes
+
+#===================================================================================================
+# NGINX Server Stuff
+
+- name: Install nginx
+  yum:
+    name: nginx
+    state: latest
+  when: deploy_ca_http_server|bool
+  tags:
+    - installPackages
+    - installNginx
+
+- name: Create nginx site directory
+  shell:
+    cmd: "mkdir -p /var/www/{{ pki_certificate_authority_root_ca_slug }}/{certs,crl}"
+    warn: false
+  when: deploy_ca_http_server|bool
+
+- name: Create a symbolic link for the Root CA Certificate
+  file:
+    src: "{{ pki_certificate_authority_root_path }}/root-ca.cert.pem"
+    dest: "/var/www/{{ pki_certificate_authority_root_ca_slug }}/certs/{{ pki_certificate_authority_root_ca_slug }}_Root_Certification_Authority.cert.pem"
+    owner: nginx
+    group: nginx
+    state: link
+  when: deploy_ca_http_server|bool
+
+- name: Create a symbolic link for the Intermediate CA Certificate
+  file:
+    src: "{{ pki_certificate_authority_root_path }}/intermed-ca.cert.pem"
+    dest: "/var/www/{{ pki_certificate_authority_root_ca_slug }}/certs/{{ openvpn_server_ca_slug }}_Intermediate_Certification_Authority.cert.pem"
+    owner: nginx
+    group: nginx
+    state: link
+  when: deploy_ca_http_server|bool
+
+- name: Create a symbolic link for the Root CA CRL
+  file:
+    src: "{{ pki_certificate_authority_root_path }}/crl/root-ca.crl"
+    dest: "/var/www/{{ pki_certificate_authority_root_ca_slug }}/crl/{{ pki_certificate_authority_root_ca_slug }}_Root_Certification_Authority.crl"
+    owner: nginx
+    group: nginx
+    state: link
+  when: deploy_ca_http_server|bool
+
+- name: Create a symbolic link for the Intermediate CA CRL
+  file:
+    src: "{{ openvpn_certificate_root_path }}/crl/intermed-ca.crl"
+    dest: "/var/www/{{ pki_certificate_authority_root_ca_slug }}/crl/{{ openvpn_server_ca_slug }}_Intermediate_Certification_Authority.crl"
+    owner: nginx
+    group: nginx
+    state: link
+  when: deploy_ca_http_server|bool
+
+- name: Copy over OpenVPN Base Client Config
+  copy:
+    src: "/etc/openvpn/base-client.ovpn"
+    dest: "/var/www/{{ pki_certificate_authority_root_ca_slug }}/openvpn-base-client-config.ovpn"
+    remote_src: yes
+    owner: nginx
+    group: nginx
+  when: deploy_ca_http_server|bool
+
+- name: Set SELinux Context in the HTML directory
+  community.general.sefcontext:
+    target: "/var/www/{{ pki_certificate_authority_root_ca_slug }}(/.*)?"
+    setype: httpd_sys_content_t
+    state: present
+
+- name: Apply new SELinux file context to filesystem
+  shell: "restorecon -Rv /var/www/{{ pki_certificate_authority_root_ca_slug }}"
+
+- name: Template over basic CA HTML Page
+  template:
+    src: pki-ca-public-webpage.html.j2
+    dest: "/var/www/{{ pki_certificate_authority_root_ca_slug }}/index.html"
+    backup: yes
+  when: deploy_ca_http_server|bool
+
+- name: Create nginx sites-available directory
+  file:
+    state: directory
+    path: /etc/nginx/sites-available
+  when: deploy_ca_http_server|bool
+
+- name: Create nginx sites-enabled directory
+  file:
+    state: directory
+    path: /etc/nginx/sites-enabled
+  when: deploy_ca_http_server|bool
+
+- name: Template over nginx server config
+  template:
+    src: pki-ca-nginx-base.conf.j2
+    dest: "/etc/nginx/nginx.conf"
+    backup: yes
+  when: deploy_ca_http_server|bool
+  notify: restart nginx
+
+- name: Template over nginx site config
+  template:
+    src: pki-ca-nginx.conf.j2
+    dest: "/etc/nginx/sites-available/{{ pki_certificate_authority_root_ca_slug }}"
+    backup: yes
+  when: deploy_ca_http_server|bool
+  notify: restart nginx
+
+- name: Create symlink to enable site
+  file:
+    state: link
+    src: "/etc/nginx/sites-available/{{ pki_certificate_authority_root_ca_slug }}"
+    dest: "/etc/nginx/sites-enabled/{{ pki_certificate_authority_root_ca_slug }}"
+  when: deploy_ca_http_server|bool
+  notify: restart nginx
+
+- name: Start nginx
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+  when: deploy_ca_http_server|bool
+
+- name: Enable nginx Ports on Firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    state: enabled
+    permanent: yes
+  with_items: "{{ nginx_ports }}"
+  notify: restart firewalld

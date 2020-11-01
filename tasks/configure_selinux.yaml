@@ -1,0 +1,5 @@
+---
+- name: Set SELinux
+  ansible.posix.selinux:
+    policy: targeted
+    state: "{{ selinux_state }}"

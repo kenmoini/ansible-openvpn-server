@@ -1,0 +1,89 @@
+##############################################
+# Sample client-side OpenVPN 2.0 config file #
+# for connecting to multi-client server.     #
+#                                            #
+# This configuration can be used by multiple #
+# clients, however each client should have   #
+# its own cert and key files.                #
+#                                            #
+# On Windows, you might want to rename this  #
+# file so it has a .ovpn extension           #
+##############################################
+
+client
+dev {{ openvpn_dev }}
+proto {{ openvpn_proto }}
+topology subnet
+
+# Windows needs the TAP-Win32 adapter name
+# from the Network Connections panel
+# if you have more than one.  On XP SP2,
+# you may need to disable the firewall
+# for the TAP adapter.
+;dev-node MyTap
+
+# If you are connecting through an
+# HTTP proxy to reach the actual OpenVPN
+# server, put the proxy server/IP and
+# port number here.  See the man page
+# if your proxy server requires
+# authentication.
+;http-proxy-retry # retry on connection failures
+;http-proxy [proxy server] [proxy port #]
+
+# user openvpn
+# group openvpn
+
+remote {{ openvpn_server_fqdn }} {{ openvpn_port }}
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+mute-replay-warnings
+cipher {{ openvpn_server_cipher }}
+{% if openvpn_server_enable_compression|bool %}
+comp-lzo adaptive
+{% endif %}
+verb {{ openvpn_server_verbosity }}
+mute 20
+ping 30
+ping-exit 43200
+
+script-security 2
+{% for server in openvpn_server_dns_servers %}
+dhcp-option DNS {{ server }}
+{% endfor %}
+dhcp-option DOMAIN {{ system_domain }}
+
+<ca>
+{{ openvpn_ca_bundle_file_stdout.stdout }}
+</ca>
+
+{% if openvpn_enable_username_auth|bool %}
+auth-user-pass
+auth-nocache
+{% endif %}
+{% if not openvpn_enable_username_auth|bool %}
+cert client.crt
+key client.key
+{% endif %}
+
+key-direction 1
+
+<tls-auth>
+{{ openvpn_tls_auth_certificate_stdout.stdout }}
+</tls-auth>
+
+# Verify server certificate by checking that the
+# certicate has the correct key usage set.
+# This is an important precaution to protect against
+# a potential attack discussed here:
+#  http://openvpn.net/howto.html#mitm
+#
+# To use this feature, you will need to generate
+# your server certificates with the keyUsage set to
+#   digitalSignature, keyEncipherment
+# and the extendedKeyUsage to
+#   serverAuth
+# EasyRSA can do this for you.
+remote-cert-tls server

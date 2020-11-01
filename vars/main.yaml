@@ -8,6 +8,9 @@ reboot_after_kernel_update: true
 setup_cockpit: false
 setup_fail2ban: true
 configure_sshd: true
+configure_automatic_updates: true
+
+selinux_state: enforcing
 
 ########################################################################################
 ### System - Configure and Secure SSHd
@@ -43,6 +46,72 @@ sshd_kerberos_ticket_cleanup: yes
 sshd_kerberos_get_afs_token: no
 sshd_kerberos_use_kuser_ok: yes
 
+########################################################################################
+### VPN - OpenVPN
+
+pki_certificate_authority_root_path: "/etc/ssl/certs/{{ system_hostname }}"
+pki_certificate_authority_root_ca_expiration: "+10years+1day"
+pki_certificate_authority_root_ca_slug: "{{ system_hostname }}-ca.{{ system_domain }}"
+
+pki_certificate_authority_root_ca_organization_name: Kemo Labs
+pki_certificate_authority_root_ca_common_name: Kemo Labs Root Certificate Authority
+
+pki_ca_name_constraints: false
+
+openvpn_certificate_root_path: "{{ pki_certificate_authority_root_path }}/intermed-ca/openvpn-server"
+openvpn_server_ca_expiration: "+10years+1day"
+openvpn_server_ca_slug: "{{ system_hostname }}-ca.{{ system_domain }}"
+
+openvpn_root_ca_organization_name: Kemo Labs
+openvpn_root_ca_common_name: Kemo Labs OpenVPN Intermediate Certificate Authority
+
+openvpn_server_cert_expiration: "+3years+1day"
+openvpn_dh_param_size: 2048
+
+openvpn_listen_on: "0.0.0.0"
+openvpn_server_fqdn: "{{ system_hostname }}.{{ system_domain }}"
+openvpn_port: 1194
+openvpn_proto: udp
+#openvpn_dev: tap
+openvpn_dev: tun
+
+# using tun
+openvpn_network: 10.69.48.0
+openvpn_subnet_mask: 255.255.255.0
+
+# using tap
+#openvpn_server_bridge_address: "{{ lan_ip_address }}"
+#openvpn_server_bridge_subnet_mask: "255.255.255.0"
+#openvpn_server_bridge_address_start: "{{ '.'.join((lan_network_block | ipaddr('network')).split('.')[0:-1]) }}.80"
+#openvpn_server_bridge_address_end: "{{ '.'.join((lan_network_block | ipaddr('network')).split('.')[0:-1]) }}.99"
+
+openvpn_server_dns_servers:
+  - 1.1.1.1
+  - 1.0.0.1
+openvpn_server_client_to_client: yes
+openvpn_server_duplicate_cn: no
+openvpn_server_keepalive: 10
+openvpn_server_enable_compression: yes
+openvpn_server_max_keepalive: 120
+openvpn_server_max_clients: 20
+openvpn_server_user: openvpn
+openvpn_server_group: openvpn
+openvpn_server_cipher: AES-256-CBC
+openvpn_server_verbosity: 4
+openvpn_enable_username_auth: yes
+
+# nginx server for ca certs and crl
+deploy_ca_http_server: true
+deploy_ca_http_server_secure: true
+deploy_ca_https_server_letsencrypt: true
+deploy_ca_https_server_letsencrypt_email: someoneyouusedtoknow@gmail.com
+ca_http_server_port: 80
+ca_https_server_port: 443
+## For the FQDNs, the first will be used in OpenSSL config, ideally externally accessible
+ca_http_server_fqdns:
+  - "{{ system_hostname }}-ca.{{ system_domain }}"
+  - "{{ system_hostname }}.{{ system_domain }}"
+
 #==================================================================================
 # DO NOT EDIT PAST THIS LINE!
 
@@ -71,8 +140,12 @@ fail2ban_packages:
   - fail2ban-selinux
 
 firewalld_ports:
-  - 1194/udp
+  - "{{ openvpn_port }}/udp"
   - "{{ sshd_port }}/tcp"
+
+nginx_ports:
+  - "{{ ca_http_server_port }}/tcp"
+  - "{{ ca_https_server_port }}/tcp"
 
 epel_repo_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
 epel_repo_gpg_key_url: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"

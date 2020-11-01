@@ -1,0 +1,16 @@
+#
+# Certificate Authority Website
+# {{ openvpn_server_ca_slug }}
+
+# Unsecured HTTP Site
+server {
+
+    listen                  {{ openvpn_listen_on }}:80;
+    server_name             {{ ' '.join(ca_http_server_fqdns) }};
+
+    # Server Default Settings
+    include                 /etc/nginx/server-defaults/*.conf;
+
+    # Public Documents Root
+    root                    /var/www/{{ pki_certificate_authority_root_ca_slug }};
+}

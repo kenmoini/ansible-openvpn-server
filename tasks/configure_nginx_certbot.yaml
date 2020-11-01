@@ -1,0 +1,14 @@
+---
+- name: Install Certbot packages
+  yum:
+    name: ["certbot", "python3-certbot-nginx"]
+    state: latest
+
+- name: Check if certificate already exists.
+  stat:
+    path: /etc/letsencrypt/live/{{ ca_http_server_fqdns | first | replace('*.', '') }}/cert.pem
+  register: letsencrypt_cert
+
+- name: Generate new certificate if one doesn't exist.
+  shell: "certbot --nginx --agree-tos --noninteractive --email {{ deploy_ca_https_server_letsencrypt_email }} -d {{ ca_http_server_fqdns | join(',') }}"
+  when: not letsencrypt_cert.stat.exists
