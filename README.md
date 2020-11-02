@@ -100,6 +100,7 @@ username_here
 password_here
 ```
 
-5. Change ownership of both files to OpenVPN's user: `chown openvpn:openvpn /etc/openvpn/client/*`
-6. Start the client service: `systemctl enable --now openvpn-client@client`
-7. Test your connection by checking the service `systemctl status openvpn-client@client` and by checking your externally recognized IP `curl ipinfo.io/ip`
+5. On line 139 of the `/etc/openvpn/client/client.conf` file, change the line to `auth-user-pass /etc/openvpn/client/pass_file`
+6. Change ownership of both files to OpenVPN's user: `chown openvpn:openvpn /etc/openvpn/client/*`
+7. Start the client service: `systemctl enable --now openvpn-client@client`
+8. Test your connection by checking the service `systemctl status openvpn-client@client` and by checking your externally recognized IP `curl ipinfo.io/ip`
