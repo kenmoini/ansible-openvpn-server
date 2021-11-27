@@ -357,18 +357,23 @@
 
 - name: Set SELinux context for log file
   shell: semanage fcontext -a -t openvpn_var_log_t '/var/log/openvpn/openvpn.log'
+  ignore_errors: true
 
 - name: Set SELinux context for status file
   shell: semanage fcontext -a -t openvpn_status_t '/var/log/openvpn/openvpn-status.log'
+  ignore_errors: true
 
 - name: Restore context for log files
   shell: restorecon -R -v /var/log/openvpn
+  ignore_errors: true
 
 - name: Set SELinux context for ipp.txt file
   shell: semanage fcontext -a -t openvpn_etc_rw_t /etc/openvpn/server/ipp.txt
+  ignore_errors: true
 
 - name: Restore context for ipp.txt file
-  shell: restorecon -R -v restorecon -R -v /etc/openvpn/server/
+  shell: restorecon -R -v /etc/openvpn/server/
+  ignore_errors: true
 
 - name: Copy over unixchkpwd policy files
   copy:
