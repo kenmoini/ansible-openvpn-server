@@ -127,7 +127,6 @@ base_packages:
   - NetworkManager-openvpn
 
 cockpit_packages:
-  - cockpit-dashboard
   - cockpit
   - cockpit-composer
   - cockpit-packagekit
