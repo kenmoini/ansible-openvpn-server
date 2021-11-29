@@ -294,11 +294,11 @@
   shell: "cat {{ openvpn_certificate_root_path }}/private/openvpn-server-tls-auth.key.pem"
   register: openvpn_tls_auth_certificate_stdout
 
-- name: Create bundled certificate chain - Root CA
-  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ pki_certificate_authority_root_path }}/root-ca.cert.pem ) {{ pki_certificate_authority_root_path }}/root-ca.cert.pem > {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
-
 - name: Create bundled certificate chain - Intermediate OpenVPN CA
-  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem ) {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem >> {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
+  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem ) {{ openvpn_certificate_root_path }}/intermed-ca.cert.pem > {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
+
+- name: Create bundled certificate chain - Root CA
+  shell: "tail -n +$(sed -n '\\|-----BEGIN CERTIFICATE-----|=' {{ pki_certificate_authority_root_path }}/root-ca.cert.pem ) {{ pki_certificate_authority_root_path }}/root-ca.cert.pem >> {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
 
 - name: Read CA Bundle File
   shell: "cat {{ openvpn_certificate_root_path }}/ca-bundle.cert.pem"
