@@ -1,6 +1,6 @@
 ---
 - name: Enable Firewalld
-  service:
+  ansible.builtin.service:
     name: firewalld
     state: started
     enabled: yes

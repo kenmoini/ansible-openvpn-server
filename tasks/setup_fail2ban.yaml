@@ -1,6 +1,6 @@
 ---
 - name: Install fail2ban
-  yum:
+  ansible.builtin.dnf:
     name: "{{ fail2ban_packages }}"
     state: latest
   tags:
@@ -8,14 +8,14 @@
     - installFail2ban
 
 - name: Template out fail2ban local jail config file
-  template:
+  ansible.builtin.template:
     src: fail2ban-jail.j2
     dest: /etc/fail2ban/jail.local
     backup: yes
   notify: restart fail2ban
 
 - name: Start and enable fail2ban
-  service:
+  ansible.builtin.service:
     name: fail2ban
     state: started
     enabled: yes

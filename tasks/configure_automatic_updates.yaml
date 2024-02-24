@@ -1,17 +1,17 @@
 ---
 - name: Install automatic update handler package
-  yum:
+  ansible.builtin.dnf:
     name: dnf-automatic
     state: latest
 
 - name: Template over automatic update handler
-  template:
+  ansible.builtin.template:
     src: automatic_updates.conf.j2
     dest: /etc/dnf/automatic.conf
     backup: yes
 
 - name: Start automatic update timer
-  service:
+  ansible.builtin.service:
     name: dnf-automatic.timer
     state: started
     enabled: yes

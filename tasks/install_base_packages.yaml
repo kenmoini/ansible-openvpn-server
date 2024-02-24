@@ -1,5 +1,5 @@
 ---
 - name: Install base packages
-  yum:
+  ansible.builtin.dnf:
     name: "{{ base_packages }}"
     state: latest

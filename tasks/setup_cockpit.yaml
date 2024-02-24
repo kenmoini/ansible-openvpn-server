@@ -1,11 +1,11 @@
 ---
 - name: Install Cockpit packages
-  yum:
+  ansible.builtin.dnf:
     name: "{{ cockpit_packages }}"
     state: latest
 
 - name: Enable Cockpit Socket
-  service:
+  ansible.builtin.service:
     name: cockpit.socket
     state: started
     enabled: yes
