@@ -377,8 +377,13 @@
 
 - name: Copy over unixchkpwd policy files
   ansible.builtin.copy:
-    src: files/my-unixchkpwd.*
-    dest: /etc/openvpn/server/
+    src: "files/{{ file_item }}"
+    dest: "/etc/openvpn/server/{{ file_item }}"
+  loop:
+    - my-unixchkpwd.pp
+    - my-unixchkpwd.te
+  loop_control:
+    loop_var: file_item
 
 - name: Run unixchkpwd policy
   ansible.builtin.shell: cd /etc/openvpn/server && semodule -X 300 -i my-unixchkpwd.pp
