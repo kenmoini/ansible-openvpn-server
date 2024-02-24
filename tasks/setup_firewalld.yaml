@@ -12,3 +12,6 @@
     permanent: yes
   with_items: "{{ firewalld_ports }}"
   notify: restart firewalld
+
+- name: Flush handlers - setup_firewalld
+  ansible.builtin.meta: flush_handlers

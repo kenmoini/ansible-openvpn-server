@@ -16,3 +16,6 @@
     state: enabled
     permanent: yes
   notify: restart firewalld
+
+- name: Flush handlers - setup_cockpit
+  ansible.builtin.meta: flush_handlers

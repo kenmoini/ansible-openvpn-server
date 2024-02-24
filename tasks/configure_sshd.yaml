@@ -11,3 +11,6 @@
 - name: Configure SSHD Port with SELinux if not on port 22
   when: sshd_port != 22
   ansible.builtin.shell: "semanage port -a -t ssh_port_t -p tcp {{ sshd_port }}"
+
+- name: Flush handlers - configure_sshd
+  ansible.builtin.meta: flush_handlers

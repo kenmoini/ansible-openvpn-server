@@ -111,6 +111,9 @@
     - setupPKI
     - setupPKIRootCA
 
+- name: Flush handlers - setup_openvpn - update-ca-trust
+  ansible.builtin.meta: flush_handlers
+
 #===================================================================================================
 ## OpenVPN Server Intermediate CA
 
@@ -394,6 +397,9 @@
     state: started
     enabled: yes
 
+- name: Flush handlers - setup_openvpn
+  ansible.builtin.meta: flush_handlers
+
 #===================================================================================================
 # NGINX Server Stuff
 - name: Setup NGINX to host CA Certificates
@@ -511,3 +517,6 @@
         permanent: yes
       with_items: "{{ nginx_ports }}"
       notify: restart firewalld
+
+    - name: Flush handlers - setup_openvpn - nginx
+      ansible.builtin.meta: flush_handlers
